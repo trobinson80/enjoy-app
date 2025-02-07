@@ -1,12 +1,13 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
+import fbconfig from '../../firebase-config.json'
 
 // Your Firebase configuration (replace with your actual credentials)
 const firebaseConfig = {
-  apiKey: 'AIzaSyDamZQFcXSNODDXymZ8KEEpw9p8bQVMnWU',
-  authDomain: 'enjoy-bd18e.firebaseapp.com',
-  projectId: 'enjoy-bd18e',
-  storageBucket:'enjoy-bd18e.appspot.com',
+  apiKey: fbconfig.apiKey,
+  authDomain: fbconfig.authDomain,
+  projectId: fbconfig.projectId,
+  storageBucket:fbconfig.storageBucket,
 };
 
 const app = initializeApp(firebaseConfig);
