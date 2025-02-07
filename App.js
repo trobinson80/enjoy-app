@@ -3,19 +3,20 @@ import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import MoviePickerScreen from './app/screens/MoviePickerScreen';
 import MoviePoster from './app/components/MoviePoster';
+import { NavigationContainer } from "@react-navigation/native";
+import { createStackNavigator } from "@react-navigation/stack";
+import LoginScreen from "./app/screens/LoginScreen";
 
 
-const posters = [
-  {label:'Step Brothers', value:require('./app/assets/step-brothers.jpg')},
-  {label:'The Hangover', value:require('./app/assets/the-hangover.jpg')},
-  {label:'The Internship', value:require('./app/assets/the-internship.jpg')},
-  {label:'Grown Ups', value:require('./app/assets/grown-ups.jpg')},
-  {label:'Wedding Crashers', value:require('./app/assets/wedding-crashers.jpg')}
-]
+const Stack = createStackNavigator();
 
 export default function App() {
   return (
-    //<MoviePoster image={posters[1].value}/>
-    <MoviePickerScreen />
+    <NavigationContainer>
+      <Stack.Navigator>
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="MoviePicker" component={MoviePickerScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
