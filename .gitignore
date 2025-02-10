@@ -36,3 +36,7 @@ yarn-error.*
 
 # firebase config
 firebase-config.json
+
+data-collection/movie-data
+data-collection/imdb-data
+data-collection/api-config.json
