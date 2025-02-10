@@ -1,3 +1,10 @@
+## Run App
+
+From frontend folder :
+`npx expo start`
+
+### Architecture
+
 Current plan for high level architecture:
 
 - 📱 Frontend: React Native (Expo)
@@ -6,4 +13,3 @@ Current plan for high level architecture:
 - 🔐 Auth: Firebase Auth (JWT-based authentication)
 - 🔗 API Communication: REST (or GraphQL if needed)
 - 📦 Storage: Firebase Storage (for images/files)
-
