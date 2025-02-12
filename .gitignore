@@ -36,6 +36,9 @@ yarn-error.*
 
 # firebase config
 firebase-config.json
+firebaseServiceAccountKey.json
+
+config.js
 
 data-collection/movie-data
 data-collection/imdb-data
