@@ -4,7 +4,7 @@ import { Image, StyleSheet, View } from 'react-native';
 function MoviePoster({image}) {
     return (
         <View >
-            <Image resizeMode='contain' style={styles.image} source={image}/>
+            <Image resizeMode='contain' style={styles.image} source={{uri : image}}/>
         </View>
     );
 }
