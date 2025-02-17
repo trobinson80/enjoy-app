@@ -1,11 +1,12 @@
 import React from 'react';
 import Screen from '../components/Screen';
-import { Button, StyleSheet } from 'react-native';
+import { Button, StyleSheet, ActivityIndicator, View } from 'react-native';
 import MoviePoster from '../components/MoviePoster';
 //import useMovies from '../hooks/useMovies';
 import movieData from '../data/movies.json'; // Import JSON
 import { imageMapping } from '../utils/imageMapping';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import API_URL from "../../config";
 
 console.log(movieData)
 console.log(imageMapping)
@@ -13,26 +14,76 @@ console.log(imageMapping)
 function MoviePickerScreen() {
 
     const [curMovie, setCurMovie] = useState(movieData[0] || null);
+    const [moviesList, setMoviesList] = useState([]); // To store movies from API
+    const [curMovieIndex, setCurMovieIndex] = useState(0); // To track the current movie index
+    const [loading, setLoading] = useState(true); // Track loading state
 
-    const getImage = (filename) => {
-        console.log('getImage: getting image for filename ', filename);
-
-        if (!filename || !imageMapping[filename]) {
-            console.error('Invalid image path: ', filename);
-            return null
+    // Fetch the list of movies from the API when the component mounts
+    const fetchMovies = async () => {
+        try {
+          const response = await fetch(`${API_URL}/movies?filter=111111`); // Adjust your API endpoint
+          if (response.ok) {
+            const data = await response.json();
+            setMoviesList(data); // Set movies list in state
+            setCurMovie(data[0] || null); // Set first movie as the current movie
+            setCurMovieIndex(0)
+            setLoading(false); // Stop loading once data is fetched
+          } else {
+            console.error('Error fetching movies: ', response.statusText);
+            setLoading(false);
+          }
+        } catch (error) {
+          console.error('Error fetching movies: ', error);
+          setLoading(false);
         }
-        return imageMapping[filename]
+    };
+
+    useEffect(() => {
+        fetchMovies();
+    }, []);
+
+    const getImage = () => {
+
+        const posterList = curMovie?.imageSet?.verticalPoster;
+        if (posterList != null) {
+            const maxPosterKey = updateMaxKey(posterList)
+            curImage = posterList[maxPosterKey];
+        }
+        
+        return curImage
     }
 
-    const getRandomMovie = () => {
-        const randomIndex = Math.floor(Math.random() * movieData.length);
-        setCurMovie(movieData[randomIndex]);
+    function updateMaxKey(verticalPoster) {
+        const currentMaxKey = Object.keys(verticalPoster).reduce((max, key) => {
+          return parseInt(key.slice(1)) > parseInt(max.slice(1)) ? key : max;
+        });
+        return currentMaxKey
+      }
+
+    const iterateMovie = () => {
+        setCurMovieIndex(curMovieIndex + 1);
+        console.log(curMovieIndex);
+        if (curMovieIndex == 60) {
+            setLoading(true);
+            fetchMovies();
+        } else {
+            setCurMovie(moviesList[curMovieIndex % 60]);
+        }
     };
 
     return (
         <Screen style={styles.screen}>
-            {curMovie && curMovie.path && <MoviePoster image={getImage(curMovie.path)} />}
-            <Button title="Like" onPress={getRandomMovie} />
+            {loading ? (
+                // Show loading spinner if the movie is still loading
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#0000ff" />
+                </View>
+            ) : (
+                <>
+                    {curMovie && <MoviePoster image={getImage()} />}
+                    <Button title="Like" onPress={iterateMovie} />
+                </>
+            )}
         </Screen>
     );
 }
