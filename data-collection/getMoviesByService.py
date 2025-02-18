@@ -7,7 +7,6 @@ service = "disney"
 with open("api-config.json", "r", encoding="utf-8") as config_file:
     config = json.load(config_file)  # Load JSON as a Python dictionary
 
-# Step 2: Access values
 api_url = config.get("api_url")
 api_key = config.get("api_key")
 api_host = config.get("api_host")
