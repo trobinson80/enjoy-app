@@ -1,6 +1,18 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, Button, Alert } from "react-native";
-import { signIn, signUp } from "../auth/authService"; // Import Firebase auth functions
+import {
+  View,
+  Text,
+  TextInput,
+  Button,
+  Alert,
+  SafeAreaView,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
+  StyleSheet,
+  Platform,
+} from "react-native";
+import { signIn, signUp } from "../auth/authService"; // Firebase Auth
 import { useNavigation } from "@react-navigation/native";
 import API_URL from "../../config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -16,12 +28,11 @@ const LoginScreen = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`, // Send token in header
+          Authorization: `Bearer ${idToken}`,
         },
-        body: JSON.stringify({ email }), // Send additional user data if needed
+        body: JSON.stringify({ email }),
       });
-      print(idToken)
-      
+
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error || "Login failed");
@@ -39,10 +50,10 @@ const LoginScreen = () => {
       const idToken = await user.getIdToken();
       await AsyncStorage.setItem("idToken", idToken);
 
-      await sendTokenToBackend(idToken)
+      await sendTokenToBackend(idToken);
 
       Alert.alert("User created!", `Welcome, ${user.email}`);
-      navigation.replace("MoviePicker"); // Navigate after sign-up
+      navigation.replace("MainApp");
     } catch (error) {
       Alert.alert("Error", error.message);
     }
@@ -54,36 +65,77 @@ const LoginScreen = () => {
       const idToken = await user.getIdToken();
       await AsyncStorage.setItem("idToken", idToken);
 
-      await sendTokenToBackend(idToken)
+      await sendTokenToBackend(idToken);
 
       Alert.alert("Success", `Welcome back, ${user.email}`);
-      navigation.replace("MoviePicker"); // Navigate after sign-in
+      navigation.replace("MainApp");
     } catch (error) {
       Alert.alert("Error", error.message);
     }
   };
 
   return (
-    <View style={{ padding: 20 }}>
-      <Text>Email:</Text>
-      <TextInput
-        style={{ borderWidth: 1, padding: 10, marginBottom: 10 }}
-        value={email}
-        onChangeText={setEmail}
-      />
+    <SafeAreaView style={styles.container}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.innerContainer}
+        >
+          <Text style={styles.title}>Login</Text>
 
-      <Text>Password:</Text>
-      <TextInput
-        style={{ borderWidth: 1, padding: 10, marginBottom: 10 }}
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
+          <TextInput
+            style={styles.input}
+            value={email}
+            onChangeText={setEmail}
+            placeholder="Enter your email"
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
 
-      <Button title="Sign Up" onPress={handleSignUp} />
-      <Button title="Sign In" onPress={handleSignIn} />
-    </View>
+          <TextInput
+            style={styles.input}
+            value={password}
+            onChangeText={setPassword}
+            placeholder="Enter your password"
+            secureTextEntry
+          />
+
+          <Button title="Sign Up" onPress={handleSignUp} />
+          <View style={styles.spacing} />
+          <Button title="Sign In" onPress={handleSignIn} />
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
+    </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  innerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  input: {
+    height: 50,
+    borderColor: "#ccc",
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 15,
+    paddingHorizontal: 10,
+  },
+  spacing: {
+    height: 10,
+  },
+});
 
 export default LoginScreen;
