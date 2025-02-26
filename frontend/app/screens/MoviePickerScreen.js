@@ -1,38 +1,48 @@
 import React from "react";
 import Screen from "../components/Screen";
-import { Button, StyleSheet, ActivityIndicator, View } from "react-native";
+import { StyleSheet, ActivityIndicator, View, Animated, Text } from "react-native";
 import MoviePoster from "../components/MoviePoster";
 //import useMovies from '../hooks/useMovies';
 import movieData from "../data/movies.json"; // Import JSON
 import { imageMapping } from "../utils/imageMapping";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import API_URL from "../../config";
+import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
 
 console.log(movieData);
 console.log(imageMapping);
 
 function MoviePickerScreen() {
   const [curMovie, setCurMovie] = useState(null);
-  const [moviesList, setMoviesList] = useState([]); // To store movies from API
-  const [curMovieIndex, setCurMovieIndex] = useState(-1); // Change to -1
-  const [loading, setLoading] = useState(true); // Track loading state
+  const [moviesList, setMoviesList] = useState([]);
+  const [curMovieIndex, setCurMovieIndex] = useState(-1);
+  const [loading, setLoading] = useState(true);
+  
+  const translateX = useRef(new Animated.Value(0)).current;
 
-  // Fetch the list of movies from the API when the component mounts
+  const updateMaxKey = (verticalPoster) => {
+    const currentMaxKey = Object.keys(verticalPoster).reduce((max, key) => {
+      return parseInt(key.slice(1)) > parseInt(max.slice(1)) ? key : max;
+    });
+    return currentMaxKey;
+  };
+
   const fetchMovies = async () => {
     try {
-      const response = await fetch(`${API_URL}/movies?filter=111111`); // Adjust your API endpoint
+      console.log("🎬 Fetching movies...");
+      const response = await fetch(`${API_URL}/movies?filter=111111`);
       if (response.ok) {
         const data = await response.json();
-        setMoviesList(data); // Set movies list in state
-        setCurMovie(data[0] || null); // Set first movie as the current movie
+        console.log("📥 Received movies data:", data.length, "movies");
+        setMoviesList(data);
+        setCurMovie(data[0] || null);
         setCurMovieIndex(0);
-        setLoading(false); // Stop loading once data is fetched
       } else {
-        console.error("Error fetching movies: ", response.statusText);
-        setLoading(false);
+        console.error("❌ Error fetching movies:", response.statusText);
       }
     } catch (error) {
-      console.error("Error fetching movies: ", error);
+      console.error("❌ Error in fetchMovies:", error);
+    } finally {
       setLoading(false);
     }
   };
@@ -42,23 +52,17 @@ function MoviePickerScreen() {
   }, []);
 
   const getImage = () => {
+    console.log("🖼️ Getting image for movie:", curMovie?.title);
     const posterList = curMovie?.imageSet?.verticalPoster;
-    if (posterList != null) {
+    if (posterList) {
       const maxPosterKey = updateMaxKey(posterList);
-      curImage = posterList[maxPosterKey];
+      return posterList[maxPosterKey];
     }
-
-    return curImage;
+    console.log("⚠️ No poster found for movie");
+    return null;
   };
 
-  function updateMaxKey(verticalPoster) {
-    const currentMaxKey = Object.keys(verticalPoster).reduce((max, key) => {
-      return parseInt(key.slice(1)) > parseInt(max.slice(1)) ? key : max;
-    });
-    return currentMaxKey;
-  }
-
-  const iterateMovie = () => {
+  const iterateMovie = (isLike) => {
     const nextIndex = curMovieIndex + 1;
     setCurMovieIndex(nextIndex);
     
@@ -67,8 +71,33 @@ function MoviePickerScreen() {
       setLoading(true);
       fetchMovies();
     } else {
-      console.log(`🎬 Showing movie ${nextIndex + 1} of 60`);
+      console.log(`🎬 Showing movie ${nextIndex + 1} of 60 (${isLike ? 'Liked' : 'Disliked'})`);
       setCurMovie(moviesList[nextIndex]);
+    }
+  };
+
+  const onGestureEvent = Animated.event(
+    [{ nativeEvent: { translationX: translateX } }],
+    { useNativeDriver: true }
+  );
+
+  const onHandlerStateChange = event => {
+    if (event.nativeEvent.oldState === State.ACTIVE) {
+      const { translationX } = event.nativeEvent;
+      
+      // Determine if it's a like or dislike based on swipe direction
+      const isLike = translationX > 0;
+      
+      // Animate card off screen
+      Animated.timing(translateX, {
+        toValue: isLike ? 500 : -500,
+        duration: 200,
+        useNativeDriver: true
+      }).start(() => {
+        // Reset position and iterate to next movie
+        translateX.setValue(0);
+        iterateMovie(isLike);
+      });
     }
   };
 
@@ -77,15 +106,37 @@ function MoviePickerScreen() {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#0000ff" />
+          <Text style={styles.loadingText}>Loading movies...</Text>
         </View>
       ) : (
-        <>
-          {curMovie && <MoviePoster image={getImage()} />}
-          <View style={styles.buttonContainer}>
-            <Button title="Dislike" onPress={iterateMovie} color="red" />
-            <Button title="Like" onPress={iterateMovie} />
-          </View>
-        </>
+        <GestureHandlerRootView style={styles.container}>
+          {curMovie ? (
+            <PanGestureHandler
+              onGestureEvent={onGestureEvent}
+              onHandlerStateChange={onHandlerStateChange}
+            >
+              <Animated.View
+                style={[
+                  styles.posterContainer,
+                  {
+                    transform: [{ translateX }],
+                  },
+                ]}
+              >
+                <View style={styles.debugPosterArea}>
+                  <MoviePoster image={getImage()} />
+                </View>
+                <Text style={styles.movieTitle}>
+                  {curMovie.title || "Movie Title Should Be Here"}
+                </Text>
+              </Animated.View>
+            </PanGestureHandler>
+          ) : (
+            <View style={styles.noMovieContainer}>
+              <Text style={styles.noMovieText}>No movies available</Text>
+            </View>
+          )}
+        </GestureHandlerRootView>
       )}
     </Screen>
   );
@@ -93,14 +144,48 @@ function MoviePickerScreen() {
 
 const styles = StyleSheet.create({
   screen: {
-    marginBottom: 50,
+    flex: 1,
     backgroundColor: "#f8f4f4",
     padding: 25,
   },
-  buttonContainer: {
-    flexDirection: 'row',  // Places buttons side by side
-    justifyContent: 'space-evenly',  // Adds spacing between buttons
-    marginBottom: 10,  // Adjust spacing from the movie poster
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  debugPosterArea: {
+    width: 300,
+    height: 450,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  posterContainer: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+  },
+  noMovieContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  noMovieText: {
+    fontSize: 18,
+    color: '#666',
+  },
+  movieTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginTop: 10,
+    textAlign: 'center',
   }
 });
 
