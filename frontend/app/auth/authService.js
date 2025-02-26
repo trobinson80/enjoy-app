@@ -1,5 +1,6 @@
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, EmailAuthProvider, reauthenticateWithCredential, updatePassword as firebaseUpdatePassword } from "firebase/auth";
-import { firebaseAuth } from "./firebaseConfig";
+import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { firebaseAuth, db } from "./firebaseConfig";
 
 export const signUp = async (email, password) => {
   try {
@@ -12,9 +13,24 @@ export const signUp = async (email, password) => {
 
 export const signIn = async (email, password) => {
   try {
+    console.log("🔑 Attempting sign in for:", email);
     const userCredential = await signInWithEmailAndPassword(firebaseAuth, email, password);
-    return userCredential.user;
+    console.log("✅ Sign in successful");
+    
+    if (!userCredential?.user) {
+      console.error("❌ No user data in credential");
+      throw new Error("No user data received from authentication");
+    }
+    
+    return {
+      user: {
+        uid: userCredential.user.uid,
+        email: userCredential.user.email,
+        accessToken: await userCredential.user.getIdToken(),
+      }
+    };
   } catch (error) {
+    console.error("❌ Sign in error:", error.message);
     throw error;
   }
 };
@@ -46,5 +62,62 @@ export const updatePassword = async (currentPassword, newPassword) => {
         ? 'Current password is incorrect' 
         : error.message || 'Failed to update password'
     );
+  }
+};
+
+export const updateUserProfile = async (uid, userData) => {
+  try {
+    console.log("📝 Attempting to save to Firestore");
+    const userRef = doc(db, 'users', uid);
+    const dataToSave = {
+      ...userData,
+      updatedAt: new Date().toISOString()
+    };
+    
+    // Remove sensitive data from logs
+    const logSafeData = {
+      ...dataToSave,
+      email: userData.email ? '[REDACTED]' : undefined,
+      token: undefined,
+      uid: undefined
+    };
+    
+    await setDoc(userRef, dataToSave, { merge: true });
+    console.log("✅ Successfully saved to Firestore:", logSafeData);
+    
+    // Verify the save by immediately reading it back
+    const savedDoc = await getDoc(userRef);
+    const logSafeVerification = {
+      ...savedDoc.data(),
+      email: '[REDACTED]',
+      token: undefined,
+      uid: undefined
+    };
+    console.log("🔍 Verification - Data in Firestore:", logSafeVerification);
+    
+  } catch (error) {
+    console.error("❌ Firestore save error:", error.message);
+    throw error;
+  }
+};
+
+export const getUserProfile = async (uid) => {
+  try {
+    const userRef = doc(db, 'users', uid);
+    const userDoc = await getDoc(userRef);
+    if (userDoc.exists()) {
+      const data = userDoc.data();
+      console.log("🔥 Firestore: Retrieved user profile:", {
+        ...data,
+        email: '[REDACTED]',
+        token: undefined,
+        uid: undefined
+      });
+      return data;
+    }
+    return null;
+  } catch (error) {
+    console.error("❌ Firestore: Error fetching user profile:", error.message);
+    throw error;
   }
 };
