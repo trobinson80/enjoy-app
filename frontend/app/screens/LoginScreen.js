@@ -13,12 +13,10 @@ import {
   Platform,
 } from "react-native";
 import { signIn, signUp } from "../auth/authService"; // Firebase Auth
-import { useNavigation } from "@react-navigation/native";
 import API_URL from "../../config";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as authStorage from "../auth/authStorage";
 
-const LoginScreen = () => {
-  const navigation = useNavigation();
+const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -32,43 +30,35 @@ const LoginScreen = () => {
         },
         body: JSON.stringify({ email }),
       });
-
+  
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error || "Login failed");
       }
-      console.log("Backend response:", data);
+  
+      // Save the user session and update app state
+      await authStorage.saveUserSession(data.uid, data.email, idToken);
+      
+      // Force a session check which will update the app state
+      await authStorage.getUserSession();
+  
+      return data;
     } catch (error) {
       console.error("Backend error:", error.message);
       Alert.alert("Error", "Failed to authenticate with server.");
+      return null;
     }
   };
 
-  const handleSignUp = async () => {
+  const handleAuth = async (authFunction) => {
     try {
-      const user = await signUp(email, password);
+      const user = await authFunction(email, password);
       const idToken = await user.getIdToken();
-      await AsyncStorage.setItem("idToken", idToken);
 
-      await sendTokenToBackend(idToken);
+      const userData = await sendTokenToBackend(idToken);
+      if (!userData) return;
 
-      Alert.alert("User created!", `Welcome, ${user.email}`);
-      navigation.replace("MainApp");
-    } catch (error) {
-      Alert.alert("Error", error.message);
-    }
-  };
-
-  const handleSignIn = async () => {
-    try {
-      const user = await signIn(email, password);
-      const idToken = await user.getIdToken();
-      await AsyncStorage.setItem("idToken", idToken);
-
-      await sendTokenToBackend(idToken);
-
-      Alert.alert("Success", `Welcome back, ${user.email}`);
-      navigation.replace("MainApp");
+      Alert.alert("Success", `Welcome, ${user.email}`);
     } catch (error) {
       Alert.alert("Error", error.message);
     }
@@ -100,15 +90,16 @@ const LoginScreen = () => {
             secureTextEntry
           />
 
-          <Button title="Sign Up" onPress={handleSignUp} />
+          <Button title="Sign Up" onPress={() => handleAuth(signUp)} />
           <View style={styles.spacing} />
-          <Button title="Sign In" onPress={handleSignIn} />
+          <Button title="Sign In" onPress={() => handleAuth(signIn)} />
         </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 };
 
+// Styles remain the same
 const styles = StyleSheet.create({
   container: {
     flex: 1,

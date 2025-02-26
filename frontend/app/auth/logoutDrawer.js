@@ -1,15 +1,14 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { DrawerContentScrollView, DrawerItemList } from "@react-navigation/drawer";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
+import * as authStorage from "./authStorage"; // Import auth storage functions
 
 const LogoutDrawer = (props) => {
   const navigation = useNavigation();
 
   const handleLogout = async () => {
-    await AsyncStorage.removeItem("idToken"); // Clear stored token
-    navigation.replace("Login"); // Redirect to login
+    await authStorage.clearUserSession(); // Clear stored user session
   };
 
   return (
