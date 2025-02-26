@@ -12,9 +12,9 @@ console.log(movieData);
 console.log(imageMapping);
 
 function MoviePickerScreen() {
-  const [curMovie, setCurMovie] = useState(movieData[0] || null);
+  const [curMovie, setCurMovie] = useState(null);
   const [moviesList, setMoviesList] = useState([]); // To store movies from API
-  const [curMovieIndex, setCurMovieIndex] = useState(0); // To track the current movie index
+  const [curMovieIndex, setCurMovieIndex] = useState(-1); // Change to -1
   const [loading, setLoading] = useState(true); // Track loading state
 
   // Fetch the list of movies from the API when the component mounts
@@ -59,13 +59,16 @@ function MoviePickerScreen() {
   }
 
   const iterateMovie = () => {
-    setCurMovieIndex(curMovieIndex + 1);
-    console.log(curMovieIndex);
-    if (curMovieIndex == 60) {
+    const nextIndex = curMovieIndex + 1;
+    setCurMovieIndex(nextIndex);
+    
+    if (nextIndex >= 60) {
+      console.log("📋 Reached end of current list, fetching new movies...");
       setLoading(true);
       fetchMovies();
     } else {
-      setCurMovie(moviesList[curMovieIndex % 60]);
+      console.log(`🎬 Showing movie ${nextIndex + 1} of 60`);
+      setCurMovie(moviesList[nextIndex]);
     }
   };
 
