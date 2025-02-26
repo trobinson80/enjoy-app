@@ -2,7 +2,7 @@ from enum import Enum
 import json
 import random
 
-with open("../data-collection/movie-data/movies_netflix.json", "r") as file:
+with open("../data-collection/movie-data/movies_hbo.json", "r") as file:
     movies = json.load(file)
 
 class MovieFilter(Enum):

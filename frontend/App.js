@@ -1,24 +1,22 @@
-import { StatusBar } from 'expo-status-bar';
-import React from 'react';
-import MoviePickerScreen from './app/screens/MoviePickerScreen';
-//import ProfileScreen from './app/screens/ProfileScreen';
-//import FriendsScreen from './app/screens/FriendsScreen';
+import React, { useEffect, useState } from "react";
+import { View, Text, ActivityIndicator, AppState } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { createDrawerNavigator } from "@react-navigation/drawer";
+import Ionicons from "react-native-vector-icons/Ionicons";
 import LoginScreen from "./app/screens/LoginScreen";
-import { Ionicons } from "react-native-vector-icons"; // For icons
-import { View, Text } from "react-native";
-import LogoutDrawer from "./app/auth/logoutDrawer"; // Import custom drawer
+import MoviePickerScreen from "./app/screens/MoviePickerScreen";
+import LogoutDrawer from "./app/auth/logoutDrawer";
+import * as authStorage from "./app/auth/authStorage"; // Auth session functions
+import { setStateChangeCallback } from "./app/auth/authStorage";
 
-// Dummy Home Screen (Can be replaced with a dashboard)
+// Dummy Home Screen (Replace with Dashboard if needed)
 const HomeScreen = () => (
   <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
     <Text>Home Screen</Text>
   </View>
 );
 
-// Create Stack Navigator
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
 
@@ -47,12 +45,60 @@ function DrawerNavigator() {
 }
 
 export default function App() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Check for stored session
+  const checkSession = async () => {
+    const session = await authStorage.getUserSession();
+    console.log("👤 App.js - Current user:", session?.email || 'none');
+    setUser(session);
+    setLoading(false);
+  };
+
+  // Update user state with logging
+  const handleUserStateChange = (newUserState) => {
+    console.log("🔄 App.js - Updating user:", newUserState?.email || 'none');
+    setUser(newUserState);
+  };
+
+  useEffect(() => {
+    // Register the callback for state changes
+    setStateChangeCallback(handleUserStateChange);
+    
+    checkSession(); // Initial session check
+
+    // Listen for app state changes
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        console.log("📱 App became active, checking session");
+        checkSession();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+      setStateChangeCallback(null);
+      console.log("🧹 Cleanup: removed state change callback");
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="blue" />
+      </View>
+    );
+  }
+
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {/* Show Login First, Then Navigate to Drawer */}
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="MainApp" component={DrawerNavigator} />
+        {user ? (
+          <Stack.Screen name="MainApp" component={DrawerNavigator} />
+        ) : (
+          <Stack.Screen name="Login" component={LoginScreen} />
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );
