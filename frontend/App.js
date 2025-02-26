@@ -9,6 +9,8 @@ import MoviePickerScreen from "./app/screens/MoviePickerScreen";
 import LogoutDrawer from "./app/auth/logoutDrawer";
 import * as authStorage from "./app/auth/authStorage"; // Auth session functions
 import { setStateChangeCallback } from "./app/auth/authStorage";
+import ProfileScreen from "./app/screens/ProfileScreen";
+import EditProfileScreen from './app/screens/EditProfileScreen';
 
 // Dummy Home Screen (Replace with Dashboard if needed)
 const HomeScreen = () => (
@@ -38,7 +40,14 @@ function DrawerNavigator() {
     >
       <Drawer.Screen name="Home" component={HomeScreen} />
       <Drawer.Screen name="Watch Party" component={MoviePickerScreen} />
-      <Drawer.Screen name="Profile" component={HomeScreen} />
+      <Drawer.Screen name="Profile" component={ProfileScreen} />
+      <Drawer.Screen name="EditProfile" 
+        component={EditProfileScreen}
+        options={{
+          drawerItemStyle: { display: 'none' }, // Hide from drawer
+          title: 'Edit Profile'
+        }}
+      />
       <Drawer.Screen name="Friends" component={HomeScreen} />
     </Drawer.Navigator>
   );
