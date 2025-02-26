@@ -7,16 +7,18 @@ export function setStateChangeCallback(callback) {
   stateChangeCallback = callback;
 }
 
-export async function saveUserSession(uid, email, token) {
+export async function saveUserSession(uid, email, token, name = '') {
   try {
-    const userData = { uid, email, token };
+    const userData = { uid, email, token, name };
+    console.log("💾 Saving user session for:", name || email.split('@')[0]);
     await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(userData));
-    console.log("�� Saved user session for:", email);
     if (stateChangeCallback) {
+      console.log("🔔 State change callback triggered");
       stateChangeCallback(userData);
     }
   } catch (error) {
-    console.error("❌ Error saving user session:", error);
+    console.error("❌ Error saving user session");
+    throw error;
   }
 }
 
@@ -24,13 +26,12 @@ export async function getUserSession() {
   try {
     const user = await SecureStore.getItemAsync(STORAGE_KEY);
     const parsedUser = user ? JSON.parse(user) : null;
-    console.log("🔍 Retrieved user session for:", parsedUser?.email || 'none');
-    if (stateChangeCallback) {
-      stateChangeCallback(parsedUser);
+    if (parsedUser) {
+      console.log("🔍 Retrieved user session for:", parsedUser.name || parsedUser.email.split('@')[0]);
     }
     return parsedUser;
   } catch (error) {
-    console.error("❌ Error retrieving user session:", error);
+    console.error("❌ Error retrieving user session");
     return null;
   }
 }

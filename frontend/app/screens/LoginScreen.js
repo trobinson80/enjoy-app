@@ -12,7 +12,7 @@ import {
   StyleSheet,
   Platform,
 } from "react-native";
-import { signIn, signUp } from "../auth/authService"; // Firebase Auth
+import { signIn, signUp, getUserProfile } from "../auth/authService"; // Firebase Auth
 import API_URL from "../../config";
 import * as authStorage from "../auth/authStorage";
 
@@ -50,16 +50,36 @@ const LoginScreen = ({ navigation }) => {
     }
   };
 
-  const handleAuth = async (authFunction) => {
+  const handleLogin = async () => {
     try {
-      const user = await authFunction(email, password);
-      const idToken = await user.getIdToken();
+      // First authenticate the user
+      const userCredential = await signIn(email, password);
+      console.log("Login response:", userCredential); // Debug log
 
-      const userData = await sendTokenToBackend(idToken);
-      if (!userData) return;
+      if (!userCredential || !userCredential.user) {
+        throw new Error('Failed to get user data from authentication');
+      }
 
-      Alert.alert("Success", `Welcome, ${user.email}`);
+      const firebaseUser = userCredential.user;
+      console.log("Firebase user:", firebaseUser); // Debug log
+
+      // Fetch user profile from Firestore
+      const userProfile = await getUserProfile(firebaseUser.uid);
+      console.log("Firestore profile:", userProfile); // Debug log
+
+      // Save to local storage with profile data
+      await authStorage.saveUserSession(
+        firebaseUser.uid,
+        firebaseUser.email,
+        firebaseUser.accessToken || firebaseUser.stsTokenManager?.accessToken,
+        userProfile?.name || ''
+      );
+
+      // Navigate to home screen or handle successful login
+      // ... your navigation code ...
+
     } catch (error) {
+      console.error("Login error:", error);
       Alert.alert("Error", error.message);
     }
   };
@@ -90,9 +110,9 @@ const LoginScreen = ({ navigation }) => {
             secureTextEntry
           />
 
-          <Button title="Sign Up" onPress={() => handleAuth(signUp)} />
+          <Button title="Sign Up" onPress={() => handleLogin()} />
           <View style={styles.spacing} />
-          <Button title="Sign In" onPress={() => handleAuth(signIn)} />
+          <Button title="Sign In" onPress={() => handleLogin()} />
         </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
     </SafeAreaView>

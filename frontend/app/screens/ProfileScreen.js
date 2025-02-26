@@ -2,17 +2,38 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { Ionicons } from 'react-native-vector-icons';
 import * as authStorage from '../auth/authStorage';
+import { useFocusEffect } from '@react-navigation/native';
 
 const ProfileScreen = ({ navigation }) => {
   const [user, setUser] = React.useState(null);
 
-  React.useEffect(() => {
-    const loadUserData = async () => {
-      const userData = await authStorage.getUserSession();
-      setUser(userData);
-    };
-    loadUserData();
-  }, []);
+  useFocusEffect(
+    React.useCallback(() => {
+      const loadUserData = async () => {
+        console.log("🔄 ProfileScreen: Loading user data");
+        const userData = await authStorage.getUserSession();
+        if (userData) {
+          // Log safe version of user data
+          console.log("📱 ProfileScreen: Loaded user:", {
+            name: userData.name || 'No name set',
+            email: userData.email
+          });
+        }
+        setUser(userData);
+      };
+      loadUserData();
+
+      return () => {
+        console.log("🧹 ProfileScreen: Cleanup on unfocus");
+      };
+    }, [])
+  );
+
+  // Add safe logging for render cycle
+  console.log("🎯 ProfileScreen: Current user state:", user ? {
+    name: user.name || 'No name set',
+    email: user.email
+  } : null);
 
   const SettingItem = ({ icon, title, value, onPress }) => (
     <TouchableOpacity style={styles.settingItem} onPress={onPress}>
@@ -33,10 +54,11 @@ const ProfileScreen = ({ navigation }) => {
       <View style={styles.header}>
         <View style={styles.avatarContainer}>
           <Text style={styles.avatarText}>
-            {user?.email ? user.email[0].toUpperCase() : '?'}
+            {user?.name ? user.name[0].toUpperCase() : user?.email ? user.email[0].toUpperCase() : '?'}
           </Text>
         </View>
-        <Text style={styles.emailText}>{user?.email || 'Loading...'}</Text>
+        <Text style={styles.nameText}>{user?.name || user?.email || 'Loading...'}</Text>
+        {user?.name && <Text style={styles.emailText}>{user.email}</Text>}
       </View>
 
       {/* Settings Sections */}
@@ -129,9 +151,15 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
-  emailText: {
-    fontSize: 18,
+  nameText: {
+    fontSize: 20,
+    fontWeight: '600',
     color: '#333',
+    marginBottom: 4,
+  },
+  emailText: {
+    fontSize: 16,
+    color: '#666',
   },
   section: {
     marginTop: 20,

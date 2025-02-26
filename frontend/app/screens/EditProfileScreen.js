@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import * as authStorage from '../auth/authStorage';
-import { updatePassword } from '../auth/authService';
+import { updatePassword, updateUserProfile } from '../auth/authService';
 
 const EditProfileScreen = ({ navigation }) => {
   const [user, setUser] = useState(null);
@@ -39,25 +39,43 @@ const EditProfileScreen = ({ navigation }) => {
     try {
       setLoading(true);
       
+      // Debug log to see user object structure
+      console.log("Current user object:", user);
+      
       // Update name
-      if (formData.name) {
+      if (formData.name && user) {  // Add null check
         const updatedUser = {
           ...user,
           name: formData.name,
         };
+
+        // Save to Firestore - use the correct uid path
+        await updateUserProfile(updatedUser.uid || user.id, {  // Add fallback
+          name: formData.name,
+          email: user.email,
+          updatedAt: new Date().toISOString(),
+        });
+
+        // Save to local storage
         await authStorage.saveUserSession(
-          updatedUser.uid,
+          updatedUser.uid || user.id,  // Add fallback
           updatedUser.email,
           updatedUser.token,
           formData.name
         );
-        console.log("✏️ Updated user name to:", formData.name);
+
+        // Update local state
+        setUser(updatedUser);
+        console.log("✅ Successfully updated user data in both Firestore and local storage");
+      } else {
+        throw new Error("No user data available");
       }
 
       setLoading(false);
       Alert.alert("Success", "Profile updated successfully!");
       navigation.goBack();
     } catch (error) {
+      console.error("❌ Error updating profile:", error);
       setLoading(false);
       Alert.alert("Error", error.message);
     }
@@ -104,11 +122,17 @@ const EditProfileScreen = ({ navigation }) => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Profile Information</Text>
         <View style={styles.inputContainer}>
+          <Text style={styles.label}>Current Display Name</Text>
+          <Text style={styles.emailText}>
+            {user.name || user.email}
+          </Text>
+        </View>
+        <View style={styles.inputContainer}>
           <Text style={styles.label}>Email</Text>
           <Text style={styles.emailText}>{user.email}</Text>
         </View>
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Name</Text>
+          <Text style={styles.label}>New Display Name</Text>
           <TextInput
             style={styles.input}
             value={formData.name}
