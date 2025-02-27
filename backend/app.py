@@ -31,14 +31,24 @@ def login():
 @app.route("/movies", methods=["GET"])
 def get_movies():
     try:
-        filter_flag = str(request.args.get("filter", 111111))
-
-        movies = MovieFilter.get_movie_list(filter_flag, 60)
+        # Get filter parameter and convert to int, default to None instead of '0'
+        filter_param = request.args.get('filter', default=None)
+        filter_value = int(filter_param) if filter_param is not None else None
+        
+        # Log the filter value in binary for debugging
+        if filter_value is not None:
+            print(f"Received filter: {bin(filter_value)[2:].zfill(6)}")
+        else:
+            print("No filter provided, using default (all services)")
+        
+        # Pass the filter value to get_movie_list
+        movies = MovieFilter.get_movie_list(filter_value, 60)
         movie_len = str(len(movies))
         print("Movie Length: " + movie_len)
-        return jsonify(movies), 200  # Send the movie list as JSON
-    except ValueError :
-        return jsonify({"error": "Invalid filter flag, must be an integer"}), 400  # Handle non-integer input
+        return jsonify(movies), 200
+    except Exception as e:
+        print(f"Error in /movies endpoint: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
