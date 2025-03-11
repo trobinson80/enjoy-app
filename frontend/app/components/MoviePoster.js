@@ -9,7 +9,7 @@ function MoviePoster({image}) {
                 resizeMode='cover' 
                 style={styles.image} 
                 source={{uri: image}}
-                onError={(error) => console.log("❌ Image loading error:", error.nativeEvent.error)}
+                onError={(error) => console.log("❌ Image: " + image + " loading error:", error.nativeEvent.error)}
                 onLoad={() => console.log("✅ Image loaded successfully")}
             />
         </View>

@@ -19,6 +19,9 @@ function MoviePickerScreen() {
   const [curMovieIndex, setCurMovieIndex] = useState(-1);
   const [loading, setLoading] = useState(true);
   const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [currentPoster, setCurrentPoster] = useState(null);  // Only keeping this state
+  const [nextIndex, setNextIndex] = useState(0);
+  const [curTitle, setCurTitle] = useState("");
   const [selectedServices, setSelectedServices] = useState({
     Netflix: false,  // 1     (000001)
     Prime: false,    // 2     (000010)
@@ -29,6 +32,7 @@ function MoviePickerScreen() {
   });
   
   const translateX = useRef(new Animated.Value(0)).current;
+  const opacity = useRef(new Animated.Value(1)).current;
 
   const updateMaxKey = (verticalPoster) => {
     const currentMaxKey = Object.keys(verticalPoster).reduce((max, key) => {
@@ -64,6 +68,8 @@ function MoviePickerScreen() {
         setMoviesList(data);
         setCurMovie(data[0] || null);
         setCurMovieIndex(0);
+        setNextIndex(1);
+        setCurrentPoster(getImage(0));
       } else {
         console.error("❌ Error fetching movies:", response.statusText);
       }
@@ -75,27 +81,20 @@ function MoviePickerScreen() {
   };
 
   const iterateMovie = (isLike) => {
-    const nextIndex = curMovieIndex + 1;
     setCurMovieIndex(nextIndex);
-    
+    setNextIndex(nextIndex + 1);
     if (nextIndex >= 60) {
       console.log("📋 Reached end of current list, fetching new movies...");
       setLoading(true);
       fetchMovies();
     } else {
       console.log(`🎬 Showing movie ${nextIndex + 1} of 60 (${isLike ? 'Liked' : 'Disliked'})`);
-      setCurMovie(moviesList[nextIndex]);
+      setCurMovie(moviesList[curMovieIndex]);
     }
   };
 
-  // Initial fetch only
-  useEffect(() => {
-    fetchMovies();
-  }, []); // Empty dependency array means it only runs once on mount
-
-  const getImage = () => {
-    console.log("🖼️ Getting image for movie:", curMovie?.title);
-    const posterList = curMovie?.imageSet?.verticalPoster;
+  const getImage = (index) => {
+    const posterList = moviesList[index]?.imageSet?.verticalPoster;
     if (posterList) {
       const maxPosterKey = updateMaxKey(posterList);
       return posterList[maxPosterKey];
@@ -112,22 +111,67 @@ function MoviePickerScreen() {
   const onHandlerStateChange = event => {
     if (event.nativeEvent.oldState === State.ACTIVE) {
       const { translationX } = event.nativeEvent;
-      
-      // Determine if it's a like or dislike based on swipe direction
       const isLike = translationX > 0;
       
-      // Animate card off screen
-      Animated.timing(translateX, {
-        toValue: isLike ? 500 : -500,
+      console.log(`👆 Swipe registered: ${isLike ? '👍 LIKE' : '👎 DISLIKE'} for "${curMovie.title}"`);
+      
+      // Set current image from nextMovie's poster immediately
+      if (moviesList[nextIndex]?.imageSet?.verticalPoster) {
+        const posterList = moviesList[nextIndex].imageSet.verticalPoster;
+        const maxPosterKey = Object.keys(posterList).reduce((max, key) => {
+          return parseInt(key.slice(1)) > parseInt(max.slice(1)) ? key : max;
+        });
+        setCurrentPoster(posterList[maxPosterKey]);
+        setCurTitle(moviesList[nextIndex].title);
+      }
+      
+      // First fade out and slide away
+      Animated.timing(opacity, {
+        toValue: 0,
         duration: 200,
         useNativeDriver: true
       }).start(() => {
-        // Reset position and iterate to next movie
-        translateX.setValue(0);
         iterateMovie(isLike);
+        translateX.setValue(0);
+        opacity.setValue(1);
       });
+
+      // Slide animation happens in parallel
+      Animated.spring(translateX, {
+        toValue: isLike ? 500 : -500,
+        useNativeDriver: true,
+        stiffness: 40,
+        damping: 15,
+        mass: 0.5,
+        velocity: isLike ? 2 : -2,
+        restDisplacementThreshold: 0.01,
+        restSpeedThreshold: 0.01
+      }).start();
     }
   };
+
+  // Initial fetch only
+  useEffect(() => {
+    fetchMovies();
+    setCurrentPoster(getImage(0));
+  }, []); // Empty dependency array means it only runs once on mount
+
+  // Set initial movies when moviesList changes
+  useEffect(() => {
+    if (moviesList.length > 0) {
+      setCurMovie(moviesList[0]);
+      setNextIndex(1);
+      setCurTitle(moviesList[0].title);
+      // Set initial poster from first movie
+      if (moviesList[0]?.imageSet?.verticalPoster) {
+        const posterList = moviesList[0].imageSet.verticalPoster;
+        const maxPosterKey = Object.keys(posterList).reduce((max, key) => {
+          return parseInt(key.slice(1)) > parseInt(max.slice(1)) ? key : max;
+        });
+        setCurrentPoster(posterList[maxPosterKey]);
+      }
+    }
+  }, [moviesList]);
 
   const toggleService = (service) => {
     setSelectedServices(prev => ({
@@ -196,14 +240,18 @@ function MoviePickerScreen() {
                   styles.posterContainer,
                   {
                     transform: [{ translateX }],
+                    opacity
                   },
                 ]}
               >
                 <View style={styles.debugPosterArea}>
-                  <MoviePoster image={getImage()} />
+                  <MoviePoster 
+                    image={currentPoster} 
+                    translateX={translateX}
+                  />
                 </View>
                 <Text style={styles.movieTitle}>
-                  {curMovie.title || "Movie Title Should Be Here"}
+                  {curTitle || "Movie Title Should Be Here"}
                 </Text>
               </Animated.View>
             </PanGestureHandler>
