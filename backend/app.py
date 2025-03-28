@@ -2,7 +2,9 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import firebase_admin
 from firebase_admin import auth, credentials
-from movie_filter import MovieFilter
+from pathlib import Path
+import json
+from movieLists import MovieLists
 
 app = Flask(__name__)
 CORS(app)  # Allow requests from React Native frontend
@@ -11,13 +13,15 @@ CORS(app)  # Allow requests from React Native frontend
 cred = credentials.Certificate("../firebaseServiceAccountKey.json")  # Update with your Firebase service account JSON file
 firebase_admin.initialize_app(cred)
 
+ml = MovieLists()
 
 @app.route("/login", methods=["POST"])
 def login():
     try:
         # data = request.get_json() # placeholder if we ever decide to put data in the request body
         id_token = request.headers.get("Authorization").split("Bearer ")[-1]  # Extract token
-
+        print("hello")
+        print(movieLists.movies_lists["NETFLIX"])
         # Verify Firebase token
         decoded_token = auth.verify_id_token(id_token)
         uid = decoded_token["uid"]
@@ -34,15 +38,14 @@ def get_movies():
         # Get filter parameter and convert to int, default to None instead of '0'
         filter_param = request.args.get('filter', default=None)
         filter_value = int(filter_param) if filter_param is not None else None
-        
         # Log the filter value in binary for debugging
         if filter_value is not None:
             print(f"Received filter: {bin(filter_value)[2:].zfill(6)}")
         else:
-            print("No filter provided, using default (all services)")
+            print("No filter provided, using default (all services)")    
         
         # Pass the filter value to get_movie_list
-        movies = MovieFilter.get_movie_list(filter_value, 60)
+        movies = ml.get_movies(filter_value, 60)
         movie_len = str(len(movies))
         print("Movie Length: " + movie_len)
         return jsonify(movies), 200
