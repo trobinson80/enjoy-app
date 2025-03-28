@@ -53,13 +53,18 @@ function MoviePickerScreen() {
 
     return Object.entries(selectedServices)
       .reduce((acc, [service, isSelected]) => {
+        print(acc)
         return acc + (isSelected ? serviceValues[service] : 0);
       }, 0);
   };
 
   const fetchMovies = async () => {
     try {
-      const filterValue = getFilterValue();
+      var filterValue = getFilterValue();
+      if (filterValue === 0) {
+        filterValue = 63;
+      } 
+
       console.log("🎬 Fetching movies with filter:", filterValue.toString(2).padStart(6, '0'));
       const response = await fetch(`${API_URL}/movies?filter=${filterValue}`);
       if (response.ok) {
