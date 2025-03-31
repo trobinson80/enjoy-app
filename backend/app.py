@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from firebase_admin import firestore  # Import Firestore module
 import firebase_admin
 from firebase_admin import auth, credentials
 from pathlib import Path
@@ -12,6 +13,8 @@ CORS(app)  # Allow requests from React Native frontend
 # Initialize Firebase Admin SDK
 cred = credentials.Certificate("../firebaseServiceAccountKey.json")  # Update with your Firebase service account JSON file
 firebase_admin.initialize_app(cred)
+
+db = firestore.client()  # Initialize Firestore client
 
 ml = MovieLists()
 
@@ -51,6 +54,32 @@ def get_movies():
         return jsonify(movies), 200
     except Exception as e:
         print(f"Error in /movies endpoint: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/search_users", methods=["GET"])
+def search_users():
+    try:
+        query = request.args.get("query", "").strip().lower()
+        print(query)
+        if not query:
+            return jsonify({"error": "Query cannot be empty"}), 400
+
+        users_ref = db.collection("users")  # Firestore collection
+        matching_users = []
+
+        # Query Firestore for users with name or email containing `query`
+        users = users_ref.stream()
+        for user in users:
+            user_data = user.to_dict()
+            if query in user_data.get("name", "").lower() or query in user_data.get("email", "").lower():
+                matching_users.append({
+                    "uid": user.id,
+                    "name": user_data.get("name", "Unknown"),
+                    "email": user_data.get("email", "No email"),
+                })
+
+        return jsonify({"users": matching_users}), 200
+    except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":

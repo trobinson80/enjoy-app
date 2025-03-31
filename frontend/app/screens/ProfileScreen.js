@@ -70,6 +70,11 @@ const ProfileScreen = ({ navigation }) => {
           onPress={() => navigation.navigate('EditProfile')}
         />
         <SettingItem 
+          icon="people-outline" 
+          title="Manage Friends"
+          onPress={() => navigation.navigate('ManageFriends')}
+        />
+        <SettingItem 
           icon="notifications-outline" 
           title="Notifications"
           value="On"

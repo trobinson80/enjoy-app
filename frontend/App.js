@@ -6,6 +6,7 @@ import { createDrawerNavigator } from "@react-navigation/drawer";
 import Ionicons from "react-native-vector-icons/Ionicons";
 import LoginScreen from "./app/screens/LoginScreen";
 import MoviePickerScreen from "./app/screens/MoviePickerScreen";
+import FriendsScreen from "./app/screens/FriendsScreen"
 import LogoutDrawer from "./app/auth/logoutDrawer";
 import * as authStorage from "./app/auth/authStorage"; // Auth session functions
 import { setStateChangeCallback } from "./app/auth/authStorage";
@@ -48,7 +49,7 @@ function DrawerNavigator() {
           title: 'Edit Profile'
         }}
       />
-      <Drawer.Screen name="Friends" component={HomeScreen} />
+      <Drawer.Screen name="Friends" component={FriendsScreen} />
     </Drawer.Navigator>
   );
 }
