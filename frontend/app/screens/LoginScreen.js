@@ -12,7 +12,7 @@ import {
   StyleSheet,
   Platform,
 } from "react-native";
-import { signIn, signUp, getUserProfile } from "../auth/authService"; // Firebase Auth
+import { signIn, signUp, getUserProfile, createUserProfile } from "../auth/authService"; // Firebase Auth
 import API_URL from "../../config";
 import * as authStorage from "../auth/authStorage";
 
@@ -84,6 +84,53 @@ const LoginScreen = ({ navigation }) => {
     }
   };
 
+  const handleSignUp = async () => {
+    try {
+      // Create user via Firebase Auth
+      const userCredential = await signUp(email, password);
+      console.log("Sign Up response:", userCredential); // Debug log
+      
+      // Firebase returns the user object in userCredential
+      const firebaseUser = userCredential?.email;
+      
+      if (!firebaseUser || !userCredential.uid) {
+        throw new Error('Failed to create user');
+      }
+  
+      console.log("Firebase user:", firebaseUser); // Debug log
+
+      // Construct user profile
+      const userProfile = {
+        uid: userCredential?.uid,
+        email: userCredential?.email,
+        name: "", // You can let the user set this later
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      console.log("🔥 Creating Firestore user profile:", userProfile);
+
+      // Save the new user profile to Firestore
+      await createUserProfile(userCredential?.uid, userProfile);
+      // Alert the user that sign-up was successful
+      Alert.alert("Success", "Account created successfully");
+  
+      // Navigate to login or home screen if needed
+      // navigation.navigate("Home");
+      // Save to local storage with profile data
+      await authStorage.saveUserSession(
+        userCredential.uid,
+        userCredential.email,
+        userCredential.accessToken || userCredential.stsTokenManager?.accessToken,
+        ''
+      );
+  
+    } catch (error) {
+      console.error("Sign Up error:", error);
+      Alert.alert("Error", error.message);
+    }
+  };  
+
   return (
     <SafeAreaView style={styles.container}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -110,7 +157,7 @@ const LoginScreen = ({ navigation }) => {
             secureTextEntry
           />
 
-          <Button title="Sign Up" onPress={() => handleLogin()} />
+          <Button title="Sign Up" onPress={() => handleSignUp()} />
           <View style={styles.spacing} />
           <Button title="Sign In" onPress={() => handleLogin()} />
         </KeyboardAvoidingView>

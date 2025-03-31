@@ -121,3 +121,25 @@ export const getUserProfile = async (uid) => {
     throw error;
   }
 };
+
+/**
+ * Creates a new user profile in Firestore.
+ * @param {string} uid - The user's unique ID.
+ * @param {object} profileData - The user profile data.
+ * @returns {Promise<void>}
+ */
+export const createUserProfile = async (uid, profileData) => {
+  try {
+    const userRef = doc(db, "users", uid);
+    await setDoc(userRef, {
+      ...profileData,
+      createdAt: profileData.createdAt || new Date().toISOString(),
+      updatedAt: profileData.updatedAt || new Date().toISOString(),
+    });
+
+    console.log("✅ Firestore: User profile created successfully for", uid);
+  } catch (error) {
+    console.error("❌ Firestore: Error creating user profile:", error.message);
+    throw error;
+  }
+};
