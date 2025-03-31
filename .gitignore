@@ -43,3 +43,5 @@ config.js
 data-collection/movie-data
 data-collection/imdb-data
 data-collection/api-config.json
+
+users.txt
