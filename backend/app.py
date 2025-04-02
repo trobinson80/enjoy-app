@@ -101,5 +101,46 @@ def add_friend():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/friend_requests", methods=["GET"])
+def get_friend_requests():
+    try:
+        uid = request.args.get("uid")
+        if not uid:
+            return jsonify({"error": "User ID is required"}), 400
+        
+        user_ref = db.collection("users").document(uid)
+        user_doc = user_ref.get()
+
+        if not user_doc.exists:
+            return jsonify({"error": "User not found"}), 404
+        
+        user_data = user_doc.to_dict()
+        friend_requests = user_data.get("friendRequests", [])
+
+        return jsonify({"friendRequests": friend_requests}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/get_user", methods=["GET"])
+def get_user():
+    try:
+        uid = request.args.get("uid")
+        if not uid:
+            return jsonify({"error": "User ID is required"}), 400
+        print(uid)
+        user_ref = db.collection("users").document(uid)
+        print(user_ref)
+        user_doc = user_ref.get()
+
+        if not user_doc.exists:
+            return jsonify({"error": "User not found"}), 404
+        
+        user_data = user_doc.to_dict()
+        return jsonify({"uid": uid, "name": user_data.get("name", "Unknown")}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
