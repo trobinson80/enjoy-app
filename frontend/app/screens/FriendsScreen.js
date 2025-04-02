@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TextInput, Button, FlatList, TouchableOpacity, Alert, StyleSheet } from "react-native";
 import axios from "axios";
 import API_URL from "../../config";
+import { getUserSession } from "../auth/authStorage";
 
 const AddFriendsScreen = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -23,10 +24,11 @@ const AddFriendsScreen = () => {
     setLoading(false);
   };
 
-  const sendFriendRequest = async (username) => {
+  const sendFriendRequest = async (targetUid) => {
     try {
-      await axios.post(`${API_URL}/send_request`, { receiver: username });
-      Alert.alert("Success", `Friend request sent to ${username}!`);
+      const currentUser = await getUserSession();
+      await axios.post(`${API_URL}/add_friend`, { current_uid: currentUser.uid, target_uid: targetUid });
+      Alert.alert("Success", "Friend request sent!");
     } catch (error) {
       Alert.alert("Error", "Failed to send request.");
     }
@@ -48,13 +50,13 @@ const AddFriendsScreen = () => {
       {/* Search Results */}
       <FlatList
         data={users}
-        keyExtractor={(item) => item.name}
+        keyExtractor={(item) => item.uid}
         renderItem={({ item }) => (
           <View style={styles.userItem}>
             <Text>{item.name}</Text>
             <TouchableOpacity
               style={styles.addButton}
-              onPress={() => sendFriendRequest(item.name)}
+              onPress={() => sendFriendRequest(item.uid)}
             >
               <Text style={styles.addButtonText}>Add Friend</Text>
             </TouchableOpacity>

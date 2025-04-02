@@ -82,5 +82,24 @@ def search_users():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/add_friend", methods=["POST"])
+def add_friend():
+    try:
+        data = request.get_json()
+        current_uid = data.get("current_uid")  # Assume frontend sends current user ID
+        target_uid = data.get("target_uid")
+        print(current_uid)
+        print(target_uid)
+        
+        if not current_uid or not target_uid:
+            return jsonify({"error": "Both current and target user IDs are required"}), 400
+        
+        target_user_ref = db.collection("users").document(target_uid)
+        target_user_ref.update({"friendRequests": firestore.ArrayUnion([current_uid])})
+        
+        return jsonify({"message": "Friend request sent"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
