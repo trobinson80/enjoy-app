@@ -115,9 +115,35 @@ def get_friend_requests():
             return jsonify({"error": "User not found"}), 404
         
         user_data = user_doc.to_dict()
-        friend_requests = user_data.get("friendRequests", [])
+        friend_request_uids = user_data.get("friendRequests", [])
+        friend_uids = user_data.get("Friends", [])
 
-        return jsonify({"friendRequests": friend_requests}), 200
+        # Fetch names for friend requests
+        friend_requests = []
+        for rid in friend_request_uids:
+            r_doc = db.collection("users").document(rid).get()
+            if r_doc.exists:
+                r_data = r_doc.to_dict()
+                friend_requests.append({
+                    "uid": rid,
+                    "name": r_data.get("name", "Unknown")
+                })
+
+        # Fetch names for existing friends
+        friends = []
+        for fid in friend_uids:
+            f_doc = db.collection("users").document(fid).get()
+            if f_doc.exists:
+                f_data = f_doc.to_dict()
+                friends.append({
+                    "uid": fid,
+                    "name": f_data.get("name", "Unknown")
+                })
+
+        return jsonify({
+            "friendRequests": friend_requests,
+            "friends": friends
+        }), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -188,14 +214,21 @@ def decline_friend_request():
         })
 
         requester_user_ref.update({
-            "friendRequests": firestore.ArrayRemove([current_uid]) 
+            "friendRequests": firestore.ArrayRemove([current_uid])
         })
 
-        return jsonify({"message": "Friend request declined"}), 200
+        current_user_ref.update({
+            "Friends": firestore.ArrayRemove([requester_uid])
+        })
+
+        requester_user_ref.update({
+            "Friends": firestore.ArrayRemove([current_uid])
+        })
+
+        return jsonify({"message": "Friend request declined or friend removed"}), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
