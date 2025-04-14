@@ -9,49 +9,36 @@ const AddFriendsScreen = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [friendRequests, setFriendRequests] = useState([]);
+  const [friends, setFriends] = useState([]);
 
   useEffect(() => {
-    fetchFriendRequests();
+    fetchFriendData();
   }, []);
 
-  const fetchFriendRequests = async () => {
+  const fetchFriendData = async () => {
     try {
       const currentUser = await getUserSession();
       const response = await axios.get(`${API_URL}/friend_requests`, {
         params: { uid: currentUser.uid },
       });
-  
-      const friendUids = response.data.friendRequests || [];
-  
-      // Fetch user details for each friend request
-      const userDetailsPromises = friendUids.map(async (uid) => {
-        try {
-          const userResponse = await axios.get(`${API_URL}/get_user`, {
-            params: { uid },
-          });
-          return { uid, name: userResponse.data.name || "Unknown" };
-        } catch {
-          return { uid, name: "Unknown" };
-        }
-      });
-  
-      const friendDetails = await Promise.all(userDetailsPromises);
-      setFriendRequests(friendDetails);
-    } catch (error) {
-      Alert.alert("Error", "Failed to load friend requests.");
-    }
-  };  
 
-  const handleConfirmRequest = async (requesterUid) => {
+      setFriendRequests(response.data.friendRequests || []);
+      setFriends(response.data.friends || []);
+    } catch (error) {
+      Alert.alert("Error", "Failed to load friend data.");
+    }
+  };
+
+  const handleConfirmRequest = async (requesterUid, requesterName) => {
     try {
-      // Placeholder for confirm request endpoint
       const currentUser = await getUserSession();
       await axios.post(`${API_URL}/confirm_friend_request`, {
         current_uid: currentUser.uid,
         requester_uid: requesterUid,
       });
       Alert.alert("Success", "Friend request accepted!");
-      setFriendRequests(friendRequests.filter((req) => req.uid !== requesterUid));
+      setFriendRequests((prev) => prev.filter((req) => req.uid !== requesterUid));
+      setFriends((prev) => [...prev, { uid: requesterUid, name: requesterName }]);
     } catch (error) {
       Alert.alert("Error", "Failed to confirm request.");
     }
@@ -59,22 +46,36 @@ const AddFriendsScreen = () => {
 
   const handleDeclineRequest = async (requesterUid) => {
     try {
-      // Placeholder for decline request endpoint
       const currentUser = await getUserSession();
       await axios.post(`${API_URL}/decline_friend_request`, {
         current_uid: currentUser.uid,
         requester_uid: requesterUid,
       });
       Alert.alert("Success", "Friend request declined.");
-      setFriendRequests(friendRequests.filter((req) => req.uid !== requesterUid));
+      setFriendRequests((prev) => prev.filter((req) => req.uid !== requesterUid));
+      setFriends((prev) => prev.filter((friend) => friend.uid !== requesterUid));
     } catch (error) {
       Alert.alert("Error", "Failed to decline request.");
     }
-  };
+  };  
+
+  const handleRemoveFriend = async (friendUid) => {
+    try {
+      const currentUser = await getUserSession();
+      await axios.post(`${API_URL}/decline_friend_request`, {
+        current_uid: currentUser.uid,
+        requester_uid: friendUid,
+      });
+      Alert.alert("Success", "Friend removed.");
+      setFriends(prev => prev.filter(friend => friend.uid !== friendUid));
+    } catch (error) {
+      Alert.alert("Error", "Failed to remove friend.");
+    }
+  };  
 
   const searchUsers = async () => {
     if (!searchQuery.trim()) return;
-    
+
     setLoading(true);
     try {
       const response = await axios.get(`${API_URL}/search_users`, {
@@ -102,35 +103,54 @@ const AddFriendsScreen = () => {
       <Text style={styles.title}>Friend Requests</Text>
       {friendRequests.length > 0 ? (
         <FlatList
-        data={friendRequests}
-        keyExtractor={(item) => item.uid}
-        renderItem={({ item }) => (
-          <View style={styles.requestItem}>
-            <Text>{item.name}</Text>
-            <View style={styles.requestButtons}>
-              <TouchableOpacity
-                style={[styles.requestButton, { backgroundColor: "green" }]}
-                onPress={() => handleConfirmRequest(item.uid)}
-              >
-                <Text style={styles.requestButtonText}>Confirm</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.requestButton, { backgroundColor: "red" }]}
-                onPress={() => handleDeclineRequest(item.uid)}
-              >
-                <Text style={styles.requestButtonText}>Decline</Text>
-              </TouchableOpacity>
+          data={friendRequests}
+          keyExtractor={(item) => item.uid}
+          renderItem={({ item }) => (
+            <View style={styles.requestItem}>
+              <Text>{item.name}</Text>
+              <View style={styles.requestButtons}>
+                <TouchableOpacity
+                  style={[styles.requestButton, { backgroundColor: "green" }]}
+                  onPress={() => handleConfirmRequest(item.uid, item.name)}
+                >
+                  <Text style={styles.requestButtonText}>Confirm</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.requestButton, { backgroundColor: "red" }]}
+                  onPress={() => handleDeclineRequest(item.uid)}
+                >
+                  <Text style={styles.requestButtonText}>Decline</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        )}
-      />      
+          )}
+        />
       ) : (
         <Text>No pending friend requests</Text>
       )}
 
-      <Text style={styles.title}>Add Friends</Text>
+      <Text style={styles.title}>Friends</Text>
+      {friends.length > 0 ? (
+        <FlatList
+          data={friends}
+          keyExtractor={(item) => item.uid}
+          renderItem={({ item }) => (
+            <View style={styles.userItem}>
+              <Text>{item.name}</Text>
+              <TouchableOpacity
+                style={styles.removeButton}
+                onPress={() => handleRemoveFriend(item.uid)}
+              >
+                <Text style={styles.removeButtonText}>Remove</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        />
+      ) : (
+        <Text>No friends yet. Go socialize!</Text>
+      )}
 
-      {/* Search Input */}
+      <Text style={styles.title}>Add Friends</Text>
       <TextInput
         placeholder="Search by username..."
         value={searchQuery}
@@ -138,8 +158,6 @@ const AddFriendsScreen = () => {
         style={styles.input}
       />
       <Button title="Search" onPress={searchUsers} disabled={loading} />
-
-      {/* Search Results */}
       <FlatList
         data={users}
         keyExtractor={(item) => item.uid}
@@ -163,13 +181,27 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: "#f5f5f5" },
   title: { fontSize: 20, fontWeight: "bold", marginBottom: 10 },
   input: { borderWidth: 1, padding: 10, marginVertical: 10, borderRadius: 5 },
-  userItem: { flexDirection: "row", justifyContent: "space-between", padding: 15, borderBottomWidth: 1 },
+  userItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ccc"
+  },
   addButton: { backgroundColor: "#007AFF", padding: 8, borderRadius: 5 },
   addButtonText: { color: "#fff", fontWeight: "bold" },
-  requestItem: { flexDirection: "row", justifyContent: "space-between", padding: 15, borderBottomWidth: 1 },
+  requestItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ccc"
+  },
   requestButtons: { flexDirection: "row", gap: 10 },
   requestButton: { padding: 8, borderRadius: 5 },
   requestButtonText: { color: "#fff", fontWeight: "bold" },
+  removeButton: { backgroundColor: "#FF3B30", padding: 8, borderRadius: 5 },
+  removeButtonText: { color: "#fff", fontWeight: "bold" },
 });
 
 export default AddFriendsScreen;
