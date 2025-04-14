@@ -141,6 +141,61 @@ def get_user():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+@app.route("/confirm_friend_request", methods=["POST"])
+def confirm_friend_request():
+    try:
+        data = request.get_json()
+        current_uid = data.get("current_uid")
+        requester_uid = data.get("requester_uid")
+
+        if not current_uid or not requester_uid:
+            return jsonify({"error": "Both user IDs are required"}), 400
+
+        current_user_ref = db.collection("users").document(current_uid)
+        requester_user_ref = db.collection("users").document(requester_uid)
+
+        current_user_ref.update({
+            "Friends": firestore.ArrayUnion([requester_uid]),
+            "friendRequests": firestore.ArrayRemove([requester_uid])
+        })
+
+        requester_user_ref.update({
+            "Friends": firestore.ArrayUnion([current_uid]),
+            "friendRequests": firestore.ArrayRemove([current_uid])
+        })
+
+        return jsonify({"message": "Friend request confirmed"}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/decline_friend_request", methods=["POST"])
+def decline_friend_request():
+    try:
+        data = request.get_json()
+        current_uid = data.get("current_uid")
+        requester_uid = data.get("requester_uid")
+
+        if not current_uid or not requester_uid:
+            return jsonify({"error": "Both user IDs are required"}), 400
+
+        current_user_ref = db.collection("users").document(current_uid)
+        requester_user_ref = db.collection("users").document(requester_uid)
+
+        current_user_ref.update({
+            "friendRequests": firestore.ArrayRemove([requester_uid])
+        })
+
+        requester_user_ref.update({
+            "friendRequests": firestore.ArrayRemove([current_uid]) 
+        })
+
+        return jsonify({"message": "Friend request declined"}), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
