@@ -45,12 +45,13 @@ const AddFriendsScreen = () => {
   const handleConfirmRequest = async (requesterUid) => {
     try {
       // Placeholder for confirm request endpoint
+      const currentUser = await getUserSession();
       await axios.post(`${API_URL}/confirm_friend_request`, {
-        current_uid: await getUserSession().uid,
+        current_uid: currentUser.uid,
         requester_uid: requesterUid,
       });
       Alert.alert("Success", "Friend request accepted!");
-      setFriendRequests(friendRequests.filter((req) => req !== requesterUid));
+      setFriendRequests(friendRequests.filter((req) => req.uid !== requesterUid));
     } catch (error) {
       Alert.alert("Error", "Failed to confirm request.");
     }
@@ -59,12 +60,13 @@ const AddFriendsScreen = () => {
   const handleDeclineRequest = async (requesterUid) => {
     try {
       // Placeholder for decline request endpoint
+      const currentUser = await getUserSession();
       await axios.post(`${API_URL}/decline_friend_request`, {
-        current_uid: await getUserSession().uid,
+        current_uid: currentUser.uid,
         requester_uid: requesterUid,
       });
       Alert.alert("Success", "Friend request declined.");
-      setFriendRequests(friendRequests.filter((req) => req !== requesterUid));
+      setFriendRequests(friendRequests.filter((req) => req.uid !== requesterUid));
     } catch (error) {
       Alert.alert("Error", "Failed to decline request.");
     }
