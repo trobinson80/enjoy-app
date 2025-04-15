@@ -4,24 +4,28 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { createDrawerNavigator } from "@react-navigation/drawer";
 import Ionicons from "react-native-vector-icons/Ionicons";
+
 import LoginScreen from "./app/screens/LoginScreen";
 import MoviePickerScreen from "./app/screens/MoviePickerScreen";
-import FriendsScreen from "./app/screens/FriendsScreen"
+import MovieSessionsScreen from "./app/screens/MovieSessionsScreen";
+import CreateMovieSessionScreen from "./app/screens/CreateMovieSessionScreen";
+
+import FriendsScreen from "./app/screens/FriendsScreen";
 import LogoutDrawer from "./app/auth/logoutDrawer";
 import * as authStorage from "./app/auth/authStorage"; // Auth session functions
 import { setStateChangeCallback } from "./app/auth/authStorage";
 import ProfileScreen from "./app/screens/ProfileScreen";
 import EditProfileScreen from './app/screens/EditProfileScreen';
 
-// Dummy Home Screen (Replace with Dashboard if needed)
+const Stack = createStackNavigator();
+const Drawer = createDrawerNavigator();
+
+// Dummy Home Screen
 const HomeScreen = () => (
   <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
     <Text>Home Screen</Text>
   </View>
 );
-
-const Stack = createStackNavigator();
-const Drawer = createDrawerNavigator();
 
 // Drawer Navigator (Main App)
 function DrawerNavigator() {
@@ -40,13 +44,14 @@ function DrawerNavigator() {
       })}
     >
       <Drawer.Screen name="Home" component={HomeScreen} />
-      <Drawer.Screen name="Watch Party" component={MoviePickerScreen} />
+      <Drawer.Screen name="Watch Party" component={MovieSessionsScreen} />
       <Drawer.Screen name="Profile" component={ProfileScreen} />
-      <Drawer.Screen name="EditProfile" 
+      <Drawer.Screen
+        name="EditProfile"
         component={EditProfileScreen}
         options={{
-          drawerItemStyle: { display: 'none' }, // Hide from drawer
-          title: 'Edit Profile'
+          drawerItemStyle: { display: 'none' },
+          title: 'Edit Profile',
         }}
       />
       <Drawer.Screen name="Friends" component={FriendsScreen} />
@@ -58,7 +63,6 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Check for stored session
   const checkSession = async () => {
     const session = await authStorage.getUserSession();
     console.log("👤 App.js - Current user:", session?.email || 'none');
@@ -66,19 +70,15 @@ export default function App() {
     setLoading(false);
   };
 
-  // Update user state with logging
   const handleUserStateChange = (newUserState) => {
     console.log("🔄 App.js - Updating user:", newUserState?.email || 'none');
     setUser(newUserState);
   };
 
   useEffect(() => {
-    // Register the callback for state changes
     setStateChangeCallback(handleUserStateChange);
-    
-    checkSession(); // Initial session check
+    checkSession();
 
-    // Listen for app state changes
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active") {
         console.log("📱 App became active, checking session");
@@ -105,7 +105,11 @@ export default function App() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {user ? (
-          <Stack.Screen name="MainApp" component={DrawerNavigator} />
+          <>
+            <Stack.Screen name="MainApp" component={DrawerNavigator} />
+            <Stack.Screen name="MoviePickerScreen" component={MoviePickerScreen} />
+            <Stack.Screen name="CreateMovieSessionScreen" component={CreateMovieSessionScreen} />
+          </>
         ) : (
           <Stack.Screen name="Login" component={LoginScreen} />
         )}
