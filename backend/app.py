@@ -319,5 +319,26 @@ def get_movie_sessions():
         print(f"❌ Error fetching sessions: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route("/delete_session", methods=["DELETE"])
+def delete_session():
+    try:
+        data = request.get_json()
+        session_id = data.get("sessionId")
+
+        if not session_id:
+            return jsonify({"error": "Missing sessionId"}), 400
+
+        session_ref = db.collection("sessions").document(session_id)
+        if not session_ref.get().exists:
+            return jsonify({"error": "Session not found"}), 404
+
+        session_ref.delete()
+        return jsonify({"message": "Session deleted"}), 200
+
+    except Exception as e:
+        print(f"❌ Error deleting session: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
