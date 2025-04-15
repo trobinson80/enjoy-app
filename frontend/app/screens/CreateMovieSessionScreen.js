@@ -1,5 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Button, StyleSheet, TouchableOpacity, ScrollView, Alert } from "react-native";
+import {
+  View,
+  Text,
+  Button,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  SafeAreaView,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import { getUserSession } from "../auth/authStorage";
@@ -52,7 +61,9 @@ const CreateMovieSessionScreen = () => {
       });
 
       if (response.data.sessionId) {
-        navigation.navigate("MoviePickerScreen", { sessionId: response.data.sessionId });
+        navigation.navigate("MoviePickerScreen", {
+          sessionId: response.data.sessionId,
+        });
       } else {
         Alert.alert("Error", "Failed to create session.");
       }
@@ -63,70 +74,81 @@ const CreateMovieSessionScreen = () => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Select Streaming Services</Text>
-      {Object.keys(selectedServices).map((service) => (
-        <TouchableOpacity
-          key={service}
-          style={[
-            styles.serviceButton,
-            selectedServices[service] && styles.serviceSelected,
-          ]}
-          onPress={() => toggleService(service)}
-        >
-          <Text
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>Select Streaming Services</Text>
+        {Object.keys(selectedServices).map((service) => (
+          <TouchableOpacity
+            key={service}
             style={[
-              styles.serviceText,
-              selectedServices[service] && styles.serviceTextSelected,
+              styles.serviceButton,
+              selectedServices[service] && styles.serviceSelected,
             ]}
+            onPress={() => toggleService(service)}
           >
-            {service}
-          </Text>
-        </TouchableOpacity>
-      ))}
+            <Text
+              style={[
+                styles.serviceText,
+                selectedServices[service] && styles.serviceTextSelected,
+              ]}
+            >
+              {service}
+            </Text>
+          </TouchableOpacity>
+        ))}
 
-      <Text style={styles.title}>Invite a Friend</Text>
-      {friends.map((friend) => (
-        <TouchableOpacity
-          key={friend.uid}
-          style={[
-            styles.friendButton,
-            selectedFriend === friend.uid && styles.friendSelected,
-          ]}
-          onPress={() => setSelectedFriend(friend.uid)}
-        >
-          <Text
+        <Text style={styles.title}>Invite a Friend</Text>
+        {friends.map((friend) => (
+          <TouchableOpacity
+            key={friend.uid}
             style={[
-              styles.friendText,
-              selectedFriend === friend.uid && styles.friendTextSelected,
+              styles.friendButton,
+              selectedFriend === friend.uid && styles.friendSelected,
             ]}
+            onPress={() => setSelectedFriend(friend.uid)}
           >
-            {friend.name}
-          </Text>
-        </TouchableOpacity>
-      ))}
+            <Text
+              style={[
+                styles.friendText,
+                selectedFriend === friend.uid && styles.friendTextSelected,
+              ]}
+            >
+              {friend.name}
+            </Text>
+          </TouchableOpacity>
+        ))}
 
-      <Button
-        title="Create Session"
-        onPress={createSession}
-        disabled={!selectedFriend}
-      />
-    </ScrollView>
+        <View style={{ marginTop: 20 }}>
+          <Button
+            title="Create Session"
+            onPress={createSession}
+            disabled={!selectedFriend}
+          />
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#f9f9f9",
+  },
   container: {
     padding: 20,
     paddingBottom: 40,
-    backgroundColor: "#f9f9f9",
+    alignItems: "center",
+    justifyContent: "flex-start", // changed from default stretch
   },
   title: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "600",
-    marginVertical: 15,
+    marginVertical: 20,
+    textAlign: "center",
   },
   serviceButton: {
+    width: "100%",
     padding: 12,
     borderRadius: 8,
     backgroundColor: "#eee",
@@ -138,12 +160,14 @@ const styles = StyleSheet.create({
   serviceText: {
     fontSize: 16,
     color: "#333",
+    textAlign: "center",
   },
   serviceTextSelected: {
     color: "#fff",
     fontWeight: "600",
   },
   friendButton: {
+    width: "100%",
     padding: 12,
     borderRadius: 8,
     backgroundColor: "#eee",
@@ -155,6 +179,7 @@ const styles = StyleSheet.create({
   friendText: {
     fontSize: 16,
     color: "#333",
+    textAlign: "center",
   },
   friendTextSelected: {
     color: "#fff",
