@@ -230,5 +230,94 @@ def decline_friend_request():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route("/create_movie_session", methods=["POST"])
+def create_movie_session():
+    try:
+        data = request.get_json()
+        owner = data.get("owner")
+        invited_friend = data.get("invitedFriend")
+        selected_services = data.get("selectedServices")
+
+        if not owner or not selected_services:
+            return jsonify({"error": "Missing required fields"}), 400
+
+        # Create a new session doc with auto ID
+        session_ref = db.collection("sessions").document()
+        session_data = {
+            "sessionId": session_ref.id,
+            "owner": owner,
+            "invitedFriend": invited_friend,
+            "selectedServices": selected_services,
+            "likedMovies": [],
+            "dislikedMovies": [],
+            "createdAt": firestore.SERVER_TIMESTAMP
+        }
+        session_ref.set(session_data)
+
+        return jsonify({"message": "Session created", "sessionId": session_ref.id}), 200
+
+    except Exception as e:
+        print(f"❌ Error creating session: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/get_movie_session", methods=["GET"])
+def get_movie_session():
+    try:
+        session_id = request.args.get("sessionId")
+        if not session_id:
+            return jsonify({"error": "Missing sessionId"}), 400
+
+        session_ref = db.collection("sessions").document(session_id)
+        session_doc = session_ref.get()
+
+        if not session_doc.exists:
+            return jsonify({"error": "Session not found"}), 404
+
+        session_data = session_doc.to_dict()
+        return jsonify(session_data), 200
+
+    except Exception as e:
+        print(f"❌ Error fetching movie session: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/movie_sessions", methods=["GET"])
+def get_movie_sessions():
+    try:
+        uid = request.args.get("uid")
+        if not uid:
+            return jsonify({"error": "User ID is required"}), 400
+
+        sessions_ref = db.collection("sessions")
+        # Query where user is either the owner or invitedFriend
+        owned_sessions = sessions_ref.where("owner", "==", uid).stream()
+        invited_sessions = sessions_ref.where("invitedFriend", "==", uid).stream()
+
+        all_sessions = []
+        for session_doc in list(owned_sessions) + list(invited_sessions):
+            session_data = session_doc.to_dict()
+            invited_uid = session_data.get("invitedFriend")
+
+            # Attempt to get invited friend's name (if exists)
+            invited_friend_name = None
+            if invited_uid:
+                invited_doc = db.collection("users").document(invited_uid).get()
+                if invited_doc.exists:
+                    invited_friend_name = invited_doc.to_dict().get("name", "Unknown")
+
+            all_sessions.append({
+                "sessionId": session_data.get("sessionId"),
+                "owner": session_data.get("owner"),
+                "invitedFriend": invited_uid,
+                "invitedFriendName": invited_friend_name,
+                "selectedServices": session_data.get("selectedServices", {}),
+                "createdAt": session_data.get("createdAt")
+            })
+
+        return jsonify({"sessions": all_sessions}), 200
+
+    except Exception as e:
+        print(f"❌ Error fetching sessions: {e}")
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
