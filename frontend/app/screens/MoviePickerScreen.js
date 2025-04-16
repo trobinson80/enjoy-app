@@ -147,9 +147,12 @@ function MoviePickerScreen() {
 
   return (
     <Screen style={styles.screen}>
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Ionicons name="arrow-back" size={24} color="black" />
-        <Text style={styles.backButtonText}>Back to Sessions</Text>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => navigation.navigate("MainApp", { screen: "Watch Party" })}
+      >
+      <Ionicons name="arrow-back" size={24} color="black" />
+      <Text style={styles.backButtonText}>Back to Sessions</Text>
       </TouchableOpacity>
 
       <TouchableOpacity 
